@@ -15,7 +15,7 @@ Aplikasi web terintegrasi yang menangani tiga lini bisnis perusahaan dalam satu 
 
 Project ini dibangun secara kolaboratif:
 
-**Diky Ramadhan** — pemilik PT Provisio Permata Tropisantara
+**Diky Fadihlah** — pemilik PT Provisio Permata Tropisantara
 > Membawa kebutuhan bisnis riil, alur kerja perusahaan, keputusan produk, & feedback iteratif. Tahu persis cara perusahaan beroperasi — yang nggak ada di buku atau template ERP manapun.
 
 **Claude** — AI assistant dari Anthropic
