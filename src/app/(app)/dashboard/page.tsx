@@ -68,16 +68,16 @@ export default async function DashboardPage() {
       <PageHeader title={t('dashboard.title')} description={t('dashboard.description')} />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi icon={TrendingUp}   label={t('dashboard.inflowMonth')}    value={formatRupiah(thisMonthCashflow.inflow)}  sub={t('dashboard.fromInvoicePay')} tone="emerald" />
-        <Kpi icon={TrendingDown} label={t('dashboard.outflowMonth')}   value={formatRupiah(thisMonthCashflow.outflow)} sub={t('dashboard.toSupplierPay')} tone="rose" />
-        <Kpi icon={Wallet}       label={t('dashboard.netMonth')}       value={formatRupiah(thisMonthCashflow.net)}     sub={thisMonthCashflow.net >= 0 ? t('dashboard.surplus') : t('dashboard.deficit')} tone={thisMonthCashflow.net >= 0 ? 'brand' : 'rose'} />
+        <Kpi icon={TrendingUp}   label={t('dashboard.inflowMonth')}    value={formatRupiah(thisMonthCashflow.inflow)}  sub={t('term.fromInvoicePay')} tone="emerald" />
+        <Kpi icon={TrendingDown} label={t('dashboard.outflowMonth')}   value={formatRupiah(thisMonthCashflow.outflow)} sub={t('term.toSupplierPay')} tone="rose" />
+        <Kpi icon={Wallet}       label={t('dashboard.netMonth')}       value={formatRupiah(thisMonthCashflow.net)}     sub={thisMonthCashflow.net >= 0 ? t('term.surplus') : t('term.deficit')} tone={thisMonthCashflow.net >= 0 ? 'brand' : 'rose'} />
         <Kpi icon={ShoppingCart} label={t('dashboard.salesMonth')}     value={formatRupiah(soThisMonth._sum.total ?? 0)} sub={t('dashboard.soCount', soThisMonth._count)} />
         <Kpi icon={Wallet}       label={t('dashboard.purchaseMonth')}  value={formatRupiah(poThisMonth._sum.total ?? 0)} sub={t('dashboard.poCount', poThisMonth._count)} />
         <Kpi icon={Building2}    label={t('dashboard.activeProjects')} value={String(activeProjects)}  sub={t('sidebar.construction')} />
         <Kpi icon={Factory}      label={t('dashboard.productionWIP')}  value={String(productionInProgress)} sub={t('sidebar.productionOrders')} />
         <Kpi icon={Package}      label={t('dashboard.activeProducts')} value={String(totalProducts)}   sub={t('dashboard.activeCustomers', totalCustomers)} />
         {lowStockItems.length > 0 && (
-          <Kpi icon={AlertTriangle} label={t('dashboard.lowStock')} value={String(lowStockItems.length)} sub={t('dashboard.reorderPoint')} tone="amber" />
+          <Kpi icon={AlertTriangle} label={t('dashboard.lowStock')} value={String(lowStockItems.length)} sub={t('term.reorderPoint')} tone="amber" />
         )}
       </div>
 
@@ -109,11 +109,11 @@ export default async function DashboardPage() {
             ) : (
               <Table>
                 <THead><TR>
-                  <TH>{t('dashboard.colCode')}</TH>
-                  <TH>{t('dashboard.colCustomer')}</TH>
-                  <TH>{t('dashboard.colDate')}</TH>
-                  <TH className="text-right">{t('dashboard.colTotal')}</TH>
-                  <TH>{t('dashboard.colStatus')}</TH>
+                  <TH>{t('col.code')}</TH>
+                  <TH>{t('col.customer')}</TH>
+                  <TH>{t('col.date')}</TH>
+                  <TH className="text-right">{t('col.total')}</TH>
+                  <TH>{t('col.status')}</TH>
                 </TR></THead>
                 <TBody>
                   {recentSOs.map((so) => (
@@ -141,10 +141,10 @@ export default async function DashboardPage() {
             ) : (
               <Table>
                 <THead><TR>
-                  <TH>{t('dashboard.colProject')}</TH>
-                  <TH>{t('dashboard.colTermin')}</TH>
-                  <TH>{t('dashboard.colDueDate')}</TH>
-                  <TH className="text-right">{t('dashboard.colValue')}</TH>
+                  <TH>{t('col.project')}</TH>
+                  <TH>{t('col.termin')}</TH>
+                  <TH>{t('col.dueDate')}</TH>
+                  <TH className="text-right">{t('col.value')}</TH>
                 </TR></THead>
                 <TBody>
                   {upcomingTermins.map((tr) => (
@@ -171,11 +171,11 @@ export default async function DashboardPage() {
             <CardBody className="!p-0">
               <Table>
                 <THead><TR>
-                  <TH>{t('dashboard.colCode')}</TH>
-                  <TH>{t('dashboard.colName')}</TH>
-                  <TH className="text-right">{t('dashboard.colStock')}</TH>
-                  <TH className="text-right">{t('dashboard.colMin')}</TH>
-                  <TH>{t('dashboard.colUom')}</TH>
+                  <TH>{t('col.code')}</TH>
+                  <TH>{t('col.name')}</TH>
+                  <TH className="text-right">{t('col.stock')}</TH>
+                  <TH className="text-right">{t('col.min')}</TH>
+                  <TH>{t('col.uom')}</TH>
                 </TR></THead>
                 <TBody>
                   {lowStockItems.map((p) => (
