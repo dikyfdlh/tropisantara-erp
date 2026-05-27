@@ -101,7 +101,20 @@ export async function importProducts(fd: FormData): Promise<ImportResult> {
         }
         // Bila code dari CSV mengikuti pola sendiri kita pakai apa adanya; bila kosong, generate.
         const code = codeRaw || (await nextCode('PRD'));
-        await db.product.create({ data: { code, ...data } });
+        await db.product.create({
+          data: {
+            code,
+            name: String(data.name),
+            type: String(data.type),
+            categoryId: String(data.categoryId),
+            uomId: String(data.uomId),
+            sellPrice: Number(data.sellPrice ?? 0),
+            buyPrice: Number(data.buyPrice ?? 0),
+            minStock: Number(data.minStock ?? 0),
+            isActive: typeof data.isActive === 'boolean' ? data.isActive : true,
+            description: data.description === undefined ? null : data.description,
+          },
+        });
         created++;
       }
     } catch (e) {

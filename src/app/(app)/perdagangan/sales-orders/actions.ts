@@ -44,7 +44,7 @@ function parseItems(fd: FormData) {
   return items;
 }
 
-function compute(items: { qty: number; unitPrice: number; discount: number }[], taxRate: number) {
+function compute(items: { productId: string; qty: number; unitPrice: number; discount: number }[], taxRate: number) {
   const itemRows = items.map((it) => {
     const gross = Math.round(it.qty * it.unitPrice);
     const total = Math.max(0, gross - it.discount);

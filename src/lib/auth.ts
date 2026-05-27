@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { db } from '@/lib/db';
+import { ALL_ROLES, type Role } from '@/lib/roles';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -24,7 +25,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const ok = await bcrypt.compare(password, user.password);
         if (!ok) return null;
 
-        return { id: user.id, email: user.email, name: user.name, role: user.role };
+        const role = ALL_ROLES.includes(user.role as Role) ? (user.role as Role) : null;
+        if (!role) return null;
+
+        return { id: user.id, email: user.email, name: user.name, role };
       },
     }),
   ],
@@ -32,14 +36,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = (user as { id: string }).id;
-        token.role = (user as { role: string }).role;
+        token.role = (user as { role: Role }).role;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as { id?: string }).id = token.id as string;
-        (session.user as { role?: string }).role = token.role as string;
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
       }
       return session;
     },
