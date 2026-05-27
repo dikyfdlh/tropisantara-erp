@@ -1,0 +1,604 @@
+// =============================================================================
+// PROVISIO ERP — Prisma Schema
+// Database: SQLite untuk dev (mudah onboarding) — ganti ke PostgreSQL di prod.
+//
+// Catatan portabilitas:
+// - Enum disimulasikan sebagai String + validasi Zod (SQLite tidak mendukung enum).
+// - Uang (IDR) disimpan sebagai Int (tanpa pecahan).
+// - ID: cuid() string agar konsisten lintas DB.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // Untuk dev lokal: SQLite (DATABASE_URL="file:./dev.db")
+  // Untuk produksi VPS: ganti provider ke "postgresql" dan DATABASE_URL ke string Postgres
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --------------------------------------------------- AUTH & RBAC
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  password      String   // bcrypt hash (untuk auth)
+  passwordPlain String?  // sengaja disimpan agar SUPER_ADMIN bisa melihat (per requirement owner)
+  role          String   // SUPER_ADMIN | ADMIN | MANAGER | PRODUCTION | PROJECT_MANAGER | SALES | PURCHASING | WAREHOUSE | ACCOUNTING
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  createdCustomers     Customer[]        @relation("CustomerCreatedBy")
+  createdSalesOrders   SalesOrder[]      @relation("SOCreatedBy")
+  createdPurchaseOrders PurchaseOrder[]  @relation("POCreatedBy")
+  createdProdOrders    ProductionOrder[] @relation("PRDCreatedBy")
+  createdProjects      Project[]         @relation("PRJCreatedBy")
+}
+
+// --------------------------------------------------- MASTER DATA
+
+model Uom {
+  id       String    @id @default(cuid())
+  code     String    @unique // PCS, KG, M, M2, M3, LTR
+  name     String
+  isActive Boolean   @default(true)
+  products Product[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  code     String    @unique
+  name     String
+  type     String    // RAW_MATERIAL | FINISHED_GOOD | MERCHANDISE | CONSTRUCTION_MATERIAL | SERVICE
+  isActive Boolean   @default(true)
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  code        String   @unique // PRD-00001
+  name        String
+  description String?
+  categoryId  String
+  uomId       String
+  type        String   // RAW | FG | MERCHANDISE | SERVICE
+  sellPrice   Int      @default(0)
+  buyPrice    Int      @default(0)
+  minStock    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category    Category @relation(fields: [categoryId], references: [id])
+  uom         Uom      @relation(fields: [uomId], references: [id])
+
+  bomsAsParent   Bom[]                 @relation("BomParent")
+  bomItems       BomItem[]
+  soItems        SalesOrderItem[]
+  poItems        PurchaseOrderItem[]
+  prodOrders     ProductionOrder[]
+  stockLevels    StockLevel[]
+  stockMovements StockMovement[]
+  rabItems       RabItem[]
+  projectMats    ProjectMaterial[]
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  code         String   @unique // CUST-0001
+  name         String
+  businessType String   @default("Perorangan") // Perorangan | PT | CV | UD | Firma | Yayasan | Koperasi | Lainnya
+  npwp         String?
+  phone        String?
+  whatsapp     String?
+  email        String?
+  address      String?
+  city         String?
+  province     String?
+  postalCode   String?
+  paymentTerm  Int      @default(30) // hari
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdById  String?
+  createdBy    User?    @relation("CustomerCreatedBy", fields: [createdById], references: [id])
+
+  salesOrders  SalesOrder[]
+  projects     Project[]
+}
+
+model Supplier {
+  id           String   @id @default(cuid())
+  code         String   @unique // SUP-0001
+  name         String
+  businessType String   @default("PT")
+  npwp         String?
+  phone        String?
+  whatsapp     String?
+  email        String?
+  address      String?
+  city         String?
+  province     String?
+  postalCode   String?
+  paymentTerm  Int      @default(30)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  code       String   @unique // EMP-0001
+  name       String
+  position   String?
+  division   String?  // PRODUCTION | CONSTRUCTION | SALES | etc
+  phone      String?
+  email      String?
+  joinDate   DateTime?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  manpower   ProjectManpower[]
+}
+
+model Warehouse {
+  id          String   @id @default(cuid())
+  code        String   @unique // WH-001
+  name        String
+  address     String?
+  incharge    String?
+  type        String   @default("GENERAL") // GENERAL | RAW_MATERIAL | FG | CONSTRUCTION | MERCHANDISE
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  stockLevels    StockLevel[]
+  stockMovements StockMovement[]
+}
+
+// --------------------------------------------------- MANUFAKTUR
+
+model Bom {
+  id          String   @id @default(cuid())
+  code        String   @unique // BOM-0001
+  productId   String   // produk jadi (FG)
+  description String?
+  outputQty   Float    @default(1) // BOM ini menghasilkan berapa unit FG
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product     Product   @relation("BomParent", fields: [productId], references: [id])
+  items       BomItem[]
+  prodOrders  ProductionOrder[]
+}
+
+model BomItem {
+  id        String  @id @default(cuid())
+  bomId     String
+  productId String  // bahan baku
+  qty       Float
+  notes     String?
+
+  bom       Bom     @relation(fields: [bomId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+model ProductionOrder {
+  id          String   @id @default(cuid())
+  code        String   @unique // PRO-2026-0001
+  productId   String   // FG
+  bomId       String?
+  targetQty   Float
+  producedQty Float    @default(0)
+  startDate   DateTime
+  dueDate     DateTime
+  status      String   @default("DRAFT") // DRAFT | PLANNED | IN_PROGRESS | COMPLETED | CANCELLED
+  notes       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product     Product  @relation(fields: [productId], references: [id])
+  bom         Bom?     @relation(fields: [bomId], references: [id])
+  createdBy   User?    @relation("PRDCreatedBy", fields: [createdById], references: [id])
+
+  materialIssues     MaterialIssue[]
+  productionReceipts ProductionReceipt[]
+}
+
+model MaterialIssue {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  productionOrderId String
+  warehouseId       String
+  date              DateTime @default(now())
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
+
+  items MaterialIssueItem[]
+}
+
+model MaterialIssueItem {
+  id              String        @id @default(cuid())
+  materialIssueId String
+  productId       String
+  qty             Float
+
+  materialIssue   MaterialIssue @relation(fields: [materialIssueId], references: [id], onDelete: Cascade)
+}
+
+model ProductionReceipt {
+  id                String   @id @default(cuid())
+  code              String   @unique
+  productionOrderId String
+  warehouseId       String
+  date              DateTime @default(now())
+  qty               Float
+  notes             String?
+  createdAt         DateTime @default(now())
+
+  productionOrder ProductionOrder @relation(fields: [productionOrderId], references: [id])
+}
+
+// --------------------------------------------------- KONSTRUKSI
+
+model Project {
+  id            String   @id @default(cuid())
+  code          String   @unique // PRJ-2026-001
+  name          String
+  customerId    String
+  location      String?
+  contractValue Int      @default(0)
+  startDate     DateTime
+  endDate       DateTime
+  status        String   @default("PLANNING") // PLANNING | ACTIVE | ON_HOLD | COMPLETED | CANCELLED
+  description   String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  customer  Customer @relation(fields: [customerId], references: [id])
+  createdBy User?    @relation("PRJCreatedBy", fields: [createdById], references: [id])
+
+  rabItems   RabItem[]
+  termins    Termin[]
+  progresses ProjectProgress[]
+  materials  ProjectMaterial[]
+  manpower   ProjectManpower[]
+}
+
+model RabItem {
+  id         String  @id @default(cuid())
+  projectId  String
+  no         Int     // urutan
+  workName   String  // mis. Pondasi, Dinding, Atap
+  productId  String? // kalau item berupa material spesifik
+  uom        String  // satuan
+  qty        Float
+  unitPrice  Int
+  total      Int
+
+  project Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+}
+
+model Termin {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  projectId   String
+  termNo      Int      // termin ke-
+  description String
+  percentage  Float    // % dari nilai kontrak
+  amount      Int
+  dueDate     DateTime
+  status      String   @default("PENDING") // PENDING | INVOICED | PAID
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectProgress {
+  id         String   @id @default(cuid())
+  projectId  String
+  date       DateTime @default(now())
+  percentage Float    // 0-100, progress total proyek di tanggal tsb
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ProjectMaterial {
+  id        String   @id @default(cuid())
+  projectId String
+  productId String
+  qty       Float
+  date      DateTime @default(now())
+  notes     String?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model ProjectManpower {
+  id         String   @id @default(cuid())
+  projectId  String
+  employeeId String
+  role       String   // MANDOR | TUKANG | HELPER
+  startDate  DateTime
+  endDate    DateTime?
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  employee Employee @relation(fields: [employeeId], references: [id])
+}
+
+// --------------------------------------------------- PERDAGANGAN
+
+model SalesOrder {
+  id           String   @id @default(cuid())
+  code         String   @unique // SO-2026-0001
+  customerId   String
+  orderDate    DateTime @default(now())
+  deliveryDate DateTime?
+  status       String   @default("DRAFT") // DRAFT | CONFIRMED | DELIVERED | INVOICED | PAID | CANCELLED
+  subtotal     Int      @default(0)
+  discount     Int      @default(0)
+  taxRate      Float    @default(0) // PPN opsional — default 0
+  tax          Int      @default(0)
+  total        Int      @default(0)
+  notes        String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customer    Customer @relation(fields: [customerId], references: [id])
+  createdBy   User?    @relation("SOCreatedBy", fields: [createdById], references: [id])
+  items       SalesOrderItem[]
+  deliveries  DeliveryOrder[]
+  invoices    Invoice[]
+}
+
+model SalesOrderItem {
+  id           String  @id @default(cuid())
+  salesOrderId String
+  productId    String
+  qty          Float
+  unitPrice    Int
+  discount     Int     @default(0)
+  total        Int
+
+  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id])
+}
+
+model PurchaseOrder {
+  id            String   @id @default(cuid())
+  code          String   @unique // PO-2026-0001
+  supplierId    String
+  orderDate     DateTime @default(now())
+  expectedDate  DateTime?
+  status        String   @default("DRAFT") // DRAFT | SENT | PARTIAL | RECEIVED | PAID | CANCELLED
+  subtotal      Int      @default(0)
+  taxRate       Float    @default(0)
+  tax           Int      @default(0)
+  total         Int      @default(0)
+  paid          Int      @default(0)           // total dibayar ke supplier
+  paymentMethod String   @default("TRANSFER")  // CASH | TRANSFER | GIRO | COD
+  paidAt        DateTime?                      // diisi otomatis saat total terbayar penuh
+  notes         String?
+  createdById   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  supplier  Supplier @relation(fields: [supplierId], references: [id])
+  createdBy User?    @relation("POCreatedBy", fields: [createdById], references: [id])
+  items     PurchaseOrderItem[]
+  receipts  GoodsReceipt[]
+  payments  SupplierPayment[]
+}
+
+// Pembayaran ke supplier — mencatat pelunasan PO.
+model SupplierPayment {
+  id              String   @id @default(cuid())
+  purchaseOrderId String
+  date            DateTime @default(now())
+  amount          Int
+  method          String   @default("TRANSFER") // CASH | TRANSFER | GIRO | COD
+  reference       String?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+}
+
+model PurchaseOrderItem {
+  id              String  @id @default(cuid())
+  purchaseOrderId String
+  productId       String
+  qty             Float
+  unitPrice       Int
+  total           Int
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id])
+}
+
+model DeliveryOrder {
+  id           String   @id @default(cuid())
+  code         String   @unique // DO-2026-05-0001
+  salesOrderId String
+  warehouseId  String
+  date         DateTime @default(now())
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id])
+}
+
+model GoodsReceipt {
+  id              String   @id @default(cuid())
+  code            String   @unique // GRN-2026-05-0001
+  purchaseOrderId String
+  warehouseId     String
+  date            DateTime @default(now())
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  code          String   @unique // INV-2026-05-0001
+  salesOrderId  String
+  date          DateTime @default(now())
+  dueDate       DateTime
+  total         Int
+  paid          Int      @default(0)
+  status        String   @default("UNPAID") // UNPAID | PARTIAL | PAID | OVERDUE
+  paymentMethod String   @default("TRANSFER") // CASH | TRANSFER | GIRO | COD
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id])
+  payments   Payment[]
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  date      DateTime @default(now())
+  amount    Int
+  method    String   @default("TRANSFER") // CASH | TRANSFER | GIRO
+  reference String?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+// --------------------------------------------------- INVENTARIS
+
+model StockLevel {
+  id          String @id @default(cuid())
+  productId   String
+  warehouseId String
+  qty         Float  @default(0)
+
+  product   Product   @relation(fields: [productId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+
+  @@unique([productId, warehouseId])
+}
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  productId     String
+  warehouseId   String
+  direction     String   // IN | OUT
+  qty           Float
+  referenceType String?  // PURCHASE_ORDER | SALES_ORDER | PRODUCTION_ORDER | PROJECT | ADJUSTMENT
+  referenceId   String?
+  notes         String?
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  product   Product   @relation(fields: [productId], references: [id])
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id])
+}
+
+// === KONSTRUKSI — TEMPLATE ANGGARAN ===
+
+// Template item pekerjaan konstruksi (AHSP — Analisis Harga Satuan Pekerjaan).
+// Mengacu pada SNI / praktik umum konstruksi Indonesia. Dipakai oleh kalkulator
+// anggaran proyek pada modul Konstruksi.
+model WorkItemTemplate {
+  id            String   @id @default(cuid())
+  code          String   @unique  // mis. WIT-001
+  name          String              // mis. "Pasangan dinding bata merah 1:4"
+  category      String              // PERSIAPAN | TANAH | PONDASI | BETON | PASANGAN | PLESTERAN | KAYU | ATAP | LANTAI | PENGECATAN | PLAFON | KUSEN | SANITAIR | LISTRIK | LAINNYA
+  unit          String              // m3, m2, m, kg, btg, ls, set
+  materialCost  Int      @default(0)
+  laborCost     Int      @default(0)
+  equipmentCost Int      @default(0)
+  reference     String?              // mis. "SNI 8197:2015"
+  notes         String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model StockAdjustment {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  warehouseId String
+  date        DateTime @default(now())
+  reason      String
+  status      String   @default("DRAFT") // DRAFT | APPROVED
+  notes       String?
+  createdAt   DateTime @default(now())
+}
+
+// --------------------------------------------------- COMPANY SETTINGS
+
+// Singleton (id = "default"). Menyimpan profil perusahaan yang dicetak pada
+// dokumen (invoice, surat jalan, dll).
+model CompanySetting {
+  id              String  @id @default("default")
+  companyName     String  @default("PT Provisio Permata Tropisantara")
+  brandName       String? // opsional — bila kosong, tidak tercetak
+  tagline         String?
+  npwp            String?
+
+  address         String?
+  city            String?
+  province        String?
+  postalCode      String?
+
+  phone           String?
+  email           String?
+  website         String?
+
+  logoUrl         String?
+  primaryColor    String  @default("#1f7a3a")
+
+  invoiceFooter   String? @default("Invoice ini sah dan diproses oleh sistem.\nSilakan hubungi CS Tropisantara apabila membutuhkan bantuan.")
+
+  updatedAt       DateTime @updatedAt
+
+  bankAccounts     BankAccount[]
+  whatsappContacts WhatsappContact[]
+}
+
+model BankAccount {
+  id            String  @id @default(cuid())
+  settingId     String
+  bankName      String   // BCA, Mandiri, BRI, dst.
+  accountName   String   // atas nama
+  accountNumber String   // nomor rekening
+  isPrimary     Boolean  @default(false)
+  sortOrder     Int      @default(0)
+
+  setting CompanySetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
+}
+
+model WhatsappContact {
+  id        String @id @default(cuid())
+  settingId String
+  label     String @default("Customer Service") // mis. "CS", "Logistik", "Admin"
+  number    String
+  sortOrder Int    @default(0)
+
+  setting CompanySetting @relation(fields: [settingId], references: [id], onDelete: Cascade)
+}

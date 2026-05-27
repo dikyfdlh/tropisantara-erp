@@ -1,0 +1,38 @@
+node_modules/
+.next/
+out/
+dist/
+
+# Env
+.env
+.env.local
+.env*.local
+
+# Database (SQLite dev)
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/dev/
+
+# Uploaded files (logo, dll) — kecuali placeholder .gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+logs/
+
+# Coverage
+coverage/
+
+next-env.d.ts

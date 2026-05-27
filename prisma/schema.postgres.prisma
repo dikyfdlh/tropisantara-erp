@@ -1,0 +1,23 @@
+// Skema versi PostgreSQL untuk produksi.
+// Cara pakai di VPS:
+//   1. cd /var/www/enterprise
+//   2. cp prisma/schema.postgres.prisma prisma/schema.prisma
+//   3. npx prisma generate && npx prisma db push
+//
+// Isi file ini sama dengan schema.prisma utama, kecuali baris `provider`.
+// (Sengaja dibuat duplikat agar dev lokal & prod independen.)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================================================
+// CATATAN: salin SEMUA model dari prisma/schema.prisma ke sini (di bawah blok
+// datasource ini), KECUALI jangan ubah/duplikat blok `datasource` & `generator`.
+// Saya buat file ini ringkas — Anda cukup copy-paste isi schema.prisma utama.
+// ===========================================================================
