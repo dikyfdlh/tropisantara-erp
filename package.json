@@ -2,7 +2,11 @@
   "name": "provisio-erp",
   "version": "1.0.0",
   "private": true,
-  "description": "Enterprise Management System - PT Provisio Permata Tropisantara",
+  "description": "Enterprise Management System for PT Provisio Permata Tropisantara — manufacturing, construction, and trade lines in one platform.",
+  "author": "Diky Ramadhan <dikyramadhan77@gmail.com>",
+  "contributors": [
+    "Claude (Anthropic) — pair programming via Claude Code"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",

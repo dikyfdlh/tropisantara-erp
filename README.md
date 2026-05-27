@@ -9,6 +9,22 @@ Aplikasi web terintegrasi yang menangani tiga lini bisnis perusahaan dalam satu 
 - 💰 **Keuangan** — Piutang (AR), Hutang (AP), Pembayaran
 - 👥 **Master Data** — Pelanggan, Pemasok, Produk, Karyawan, Gudang, dll.
 
+---
+
+## 👥 Tentang Pembuatan
+
+Project ini dibangun secara kolaboratif:
+
+**Diky Ramadhan** — pemilik PT Provisio Permata Tropisantara
+> Membawa kebutuhan bisnis riil, alur kerja perusahaan, keputusan produk, & feedback iteratif. Tahu persis cara perusahaan beroperasi — yang nggak ada di buku atau template ERP manapun.
+
+**Claude** — AI assistant dari Anthropic
+> Membantu menerjemahkan kebutuhan jadi kode: arsitektur, schema database, UI/UX, internasionalisasi, sampai dokumen deploy. Dipasangkan via Claude Code di VS Code.
+
+Bukan pakai template jadi, bukan copy-paste dari GitHub. Setiap modul dibahas, dibangun, di-iterasi sampai sesuai kenyataan operasional di lapangan — dari pasangan dinding bata pakai SNI 8197:2015 sampai format invoice yang sesuai ekspektasi pelanggan kami.
+
+> *"AI bukan pengganti manusia yang ngerti bisnisnya — dia pengganti programmer yang ngeluh kalau diminta revisi ke-50 kali."*
+
 📑 **Dokumentasi proyek:**
 - [SRS.md](SRS.md) — Software Requirements Specification (apa yang dibangun & untuk siapa)
 - [SDD.md](SDD.md) — Software Design Document (bagaimana dibangun)

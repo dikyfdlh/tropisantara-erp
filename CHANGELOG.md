@@ -25,3 +25,6 @@ Rilis awal sistem manajemen enterprise PT Provisio Permata Tropisantara.
 - NextAuth v5 (Auth.js) credentials
 - Recharts untuk grafik cashflow
 - PM2 untuk process management di VPS
+
+### Pembuat
+Dibangun kolaboratif oleh **Diky Ramadhan** (pemilik PT Provisio Permata Tropisantara — domain expert) bersama **Claude** (AI assistant Anthropic, via Claude Code) — dari sketsa kebutuhan sampai versi siap produksi.
