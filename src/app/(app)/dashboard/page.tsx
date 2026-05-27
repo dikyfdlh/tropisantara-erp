@@ -89,7 +89,7 @@ export default async function DashboardPage() {
               <p className="mt-1 text-xs text-slate-500 dark:text-neutral-400">{t('dashboard.cashflowDesc')}</p>
             </div>
             <Link href="/keuangan/cashflow" className="text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
-              {t('dashboard.viewDetail')} →
+              {t('btn.viewDetail')} →
             </Link>
           </div>
           <CardBody>
